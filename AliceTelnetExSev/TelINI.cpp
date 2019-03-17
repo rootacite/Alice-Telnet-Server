@@ -6,9 +6,11 @@
 #include "compack.h"
 #pragma comment( lib, "ws2_32.lib" )// 链接Winsock2.h的静态库文件
 
+using namespace std;
+
 string allhistory = "";
 string nowhost = "127.0.0.1";
-
+ 
 struct threadSockData {
 	SOCKET*sock;
 	SOCKADDR_IN addr;
@@ -18,30 +20,42 @@ DWORD WINAPI SevThread(LPVOID cuth) {
 	threadSockData *cuthdata =(threadSockData*) cuth;
 	char sendBuf[50];
 	sprintf(sendBuf, "%s", inet_ntoa(cuthdata->addr.sin_addr));//inet_ntoa网络地址转换转点分十进制的字符串指针	
-	printf("上线！IP:%s\n", sendBuf);
+	
+	char linebuffer[255];
+	sprintf(linebuffer,"上线！IP:%s\n", sendBuf);
+
+	teleprintf(linebuffer);
+	  
 	allhistory += "line :";
 	allhistory += 	sendBuf;
 	allhistory += "\n";
+
+	char headofCmd[50];
+	sprintf(headofCmd, "%s>", sendBuf);
 	while (1) {
 		//	
 		if (strcmp(sendBuf, nowhost.c_str()) != 0) {
 			Sleep(100);
 			continue;
 		}
-		printf("%s>", sendBuf);
+
+
+		teleprintf(headofCmd);
 
 		string comb = "";
-		getline(cin, comb, '\n');
+		telegetline(comb);
 
 
 		if (comb == "#plist") {
-			printf(allhistory.c_str());
+			teleprintf(allhistory.c_str());
 			continue;
 		}
 		else if (comb == "#tab") {
-			printf("输入要切换的IP:");
+
+
+			teleprintf("输入要切换的IP:");
 			string combip = "";
-			getline(cin, combip, '\n');
+			telegetline( combip);
 			nowhost = combip;
 			continue;
 		}
@@ -55,11 +69,14 @@ DWORD WINAPI SevThread(LPVOID cuth) {
 		int ret = recv(*cuthdata->sock, (char*)&locdata, sizeof(MESSAGEDATA), 0);
 
 		if (ret == SOCKET_ERROR || ret == 0) {
-			printf("连接中断\n");
+			teleprintf("连接中断\n");
 			break;
 		}
 		if (locdata.uId == DATA_REVIEW) {
-			printf("%s\n", locdata.data);
+			string nowDataEx = locdata.data;
+			nowDataEx += "\n";
+
+			teleprintf(nowDataEx.c_str());
 		}
 	}
 	closesocket(*cuthdata->sock);
@@ -75,9 +92,8 @@ DWORD WINAPI SevThread(LPVOID cuth) {
 }
 
 DWORD WINAPI FakeThread(LPVOID  lp){
-		char sendBuf[50];
+		char sendBuf[255];
 		sprintf(sendBuf, "127.0.0.1");//inet_ntoa网络地址转换转点分十进制的字符串指针	
-	///	printf("上线！IP:%s\n", sendBuf);
 		allhistory += "line :";
 		allhistory += sendBuf;
 		allhistory += "\n";
@@ -87,20 +103,27 @@ DWORD WINAPI FakeThread(LPVOID  lp){
 				Sleep(100);
 				continue;
 			}
-			printf("%s>", sendBuf);
+
+			char linebuffer[255];
+
+			sprintf(linebuffer, "%s>", sendBuf);
+			teleprintf(linebuffer);
 
 			string comb = "";
-			getline(cin, comb, '\n');
+			telegetline(comb);
 
+			//MessageBoxA(0,comb.c_str(),"",0);
 
 			if (comb == "#plist") {
-				printf(allhistory.c_str());
+				teleprintf(allhistory.c_str());
 				continue;
 			}
 			else if (comb == "#tab") {
-				printf("输入要切换的IP:");
+
+				//MessageBox(0,L"",L"",0);
+				teleprintf("输入要切换的IP:");
 				string combip = "";
-				getline(cin, combip, '\n');
+				telegetline( combip);
 				nowhost = combip;
 				continue;
 			}
@@ -119,6 +142,7 @@ DWORD WINAPI FakeThread(LPVOID  lp){
 using namespace std;
 int main(){
 	//初始化winsocket	
+	CreateThread(0, 0, AdminLogin, 0, 0, 0);
 	WORD wVersionRequested;	
 	WSADATA wsaData;
 	int err; 	
@@ -139,7 +163,7 @@ int main(){
 	int len=sizeof(SOCKADDR); 	
 	CreateThread(0, 0, FakeThread, 0, 0, 0);
 	while (1) {
-		//printf("等待链接\n");
+		//teleprintf("等待链接\n");
 		SOCKET* sockConn = (SOCKET*)malloc(sizeof(SOCKET));
 		*sockConn = accept(sockSrv, (SOCKADDR*)&addrClient, &len);//为一个连接请求提供服务。addrClient包含了发出连接请求的客户机IP地址信息；返回的新socket描述服务器与该客户机的连接 
 		threadSockData* datath=(threadSockData*)malloc(sizeof(threadSockData));
